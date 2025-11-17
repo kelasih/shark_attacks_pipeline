@@ -1,0 +1,55 @@
+- name: Local environment setup
+  hosts: localhost
+  connection: local
+  gather_facts: false
+
+  vars:
+    terraform_dir: "../../terraform"
+    tfvars_file: "{{ terraform_dir }}/envs/local/local.tfvars"
+    tf_plan_file: "{{ terraform_dir }}/plan.out"
+
+  tasks:
+    - name: Start LocalStack via Docker Compose
+      community.docker.docker_compose_v2:
+        project_src: "{{ terraform_dir }}/envs/local"
+        state: present
+        build: never
+      register: localstack_up
+
+    - name: Wait until LocalStack container is healthy
+      community.docker.docker_container_info:
+        name: local-localstack-1
+      register: container_info
+      retries: 30
+      delay: 5
+      until: container_info.container.State.Health.Status == "healthy"
+
+    - name: Wait extra time for LocalStack services to be ready
+      ansible.builtin.pause:
+        seconds: 10
+
+    - name: Run Terraform init
+      ansible.builtin.command:
+        cmd: terraform -chdir="{{ terraform_dir }}" init -input=false -no-color
+      register: tf_init
+
+    - name: Run Terraform apply (force non-interactive)
+      ansible.builtin.shell: |
+        export TF_IN_AUTOMATION=1
+        export TF_INPUT=0
+        export TF_CLI_ARGS="-no-color -input=false"
+        terraform -chdir="{{ terraform_dir }}" apply -auto-approve -input=false -no-color -var-file="{{ tfvars_file }}"
+      args:
+        executable: /bin/bash
+        stdin: ""
+      register: tf_apply
+      environment:
+        TF_IN_AUTOMATION: "1"
+        TF_INPUT: "0"
+        TF_LOG: WARN
+      no_log: false
+
+
+    - name: Show Terraform apply output
+      debug:
+        var: tf_apply.stdout

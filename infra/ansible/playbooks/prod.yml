@@ -1,0 +1,8 @@
+- name: Production environment setup
+  hosts: localhost
+  connection: local
+  tasks:
+    - name: Run Terraform apply with prod vars
+      command: terraform apply -var-file="../../infra/terraform/envs/prod.tfvars" -auto-approve
+      args:
+        chdir: ../../infra/terraform

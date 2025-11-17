@@ -1,0 +1,17 @@
+services:
+  localstack:
+    image: localstack/localstack
+    ports:
+      - "4566:4566"
+      - "4510:4559"
+    environment:
+      - DEBUG=1
+      - SERVICES=s3
+      - DOCKER_HOST=unix:///var/run/docker.sock
+      - LOCALSTACK_PERSISTENCE=1
+      - DATA_DIR=/var/lib/localstack
+    volumes:
+      - "/var/run/docker.sock:/var/run/docker.sock"
+      - "./localstack-data:/var/lib/localstack"
+    security_opt:
+      - no-new-privileges:true

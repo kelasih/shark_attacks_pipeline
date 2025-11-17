@@ -1,0 +1,22 @@
+services:
+  ansible:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: ansible-runner
+    volumes:
+      - ..:/infra
+      - /var/run/docker.sock:/var/run/docker.sock
+    working_dir: /infra/ansible
+    command: >
+      bash -c '
+        if [ -z "$PLAYBOOK" ]; then
+          echo "❌ ERROR: No PLAYBOOK specified.";
+          echo "Usage: PLAYBOOK=<playbook.yml> docker-compose up";
+          echo "Available playbooks:"; ls playbooks;
+          exit 1;
+        fi;
+        echo "🚀 Running playbook: $PLAYBOOK";
+        ansible-playbook -i inventory.ini playbooks/$PLAYBOOK &&
+        echo "✅ Finished playbook: $PLAYBOOK";
+      '
